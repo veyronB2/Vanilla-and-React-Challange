@@ -8,6 +8,13 @@ const initialState = {
   query: "",
 }
 
+//define all actions
+const ACTIONS = {
+  QUERY: "query",
+  MULTIPLIER: "multiplier",
+  FETCH: "fetch",
+}
+
 const reducer = (state, action) => {
   switch (action.type) {
     case "query":
@@ -69,8 +76,8 @@ function FunctionalComp() {
     const handleEsc = (event) => {
       //reset to defaults
       if (event.key === "Escape") {
-        dispatch({ type: "multiplier", payload: 10 })
-        dispatch({ type: "query", payload: "" })
+        dispatch({ type: ACTIONS.MULTIPLIER, payload: initialState.multiplier })
+        dispatch({ type: ACTIONS.QUERY, payload: initialState.query })
       }
 
     };
@@ -88,7 +95,7 @@ function FunctionalComp() {
 
     <div id="functional-comp">
       <h2>React Functional Component</h2>
-      Filter: <input value={state.query} placeholder="Filter by name" onChange={(e) => dispatch({ type: "query", payload: e.target.value })} /> Multiplier:{" "}
+      Filter: <input value={state.query} placeholder="Filter by name" onChange={(e) => dispatch({ type: ACTIONS.QUERY, payload: e.target.value })} /> Multiplier:{" "}
       <input
         id="functional-multiplier"
         placeholder="Multiplier"
@@ -96,7 +103,7 @@ function FunctionalComp() {
         min="1"
         max="20"
         value={state.multiplier}
-        onChange={(e) => dispatch({ type: "multiplier", payload: e.target.value })}
+        onChange={(e) => dispatch({ type: ACTIONS.MULTIPLIER, payload: e.target.value })}
       />{" "}
       Press "Escape" to reset fields
       <div className="loader">Loading...</div>
