@@ -17,11 +17,11 @@ const ACTIONS = {
 
 const reducer = (state, action) => {
   switch (action.type) {
-    case "query":
+    case ACTIONS.QUERY:
       return { ...state, query: action.payload }
-    case "multiplier":
+    case ACTIONS.MULTIPLIER:
       return { ...state, multiplier: action.payload }
-    case "fetch":
+    case ACTIONS.FETCH:
       return { ...state, characters: action.payload }
     default:
       return state;
