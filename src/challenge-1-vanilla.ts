@@ -41,30 +41,6 @@ export function runVanillaApp() {
     return power.toFixed(0);
   };
 
-  /* wait for fetch to complete before building the table  */
-  async function buidltable() {
-    await fetchData(url);
-
-    /* build dynamic table based on data fetched */
-    data.forEach((user, index) => {
-      const row = document.createElement("tr");
-      const name = document.createElement("td");
-
-      name.innerText = user.name;
-      name.id = index.toString();
-      const height = document.createElement("td");
-      height.innerText = user.height;
-      const mass = document.createElement("td");
-      mass.innerText = user.mass;
-      const power = document.createElement("td");
-      power.innerText = calcPower(user.mass, user.height, multiplier);
-      power.id = `power${index}`;
-
-      row.append(name, height, mass, power);
-      tbody.appendChild(row);
-    });
-  }
-
   //update power column
   function updatePower(multiplier) {
     data.forEach((item, index) => {
@@ -73,19 +49,58 @@ export function runVanillaApp() {
     });
   }
 
-  function filterName(event) {
+  function singleRow(user, index) {
+    const row = document.createElement("tr");
+    const name = document.createElement("td");
+    name.innerText = user.name;
+    name.id = index.toString();
+    const height = document.createElement("td");
+    height.innerText = user.height;
+    const mass = document.createElement("td");
+    mass.innerText = user.mass;
+    const power = document.createElement("td");
+    power.innerText = calcPower(user.mass, user.height, multiplier);
+    power.id = `power${index}`;
+    row.append(name, height, mass, power);
+    tbody.appendChild(row);
+  }
+
+  const addRows = () => {
+    /* build dynamic table based on data fetched */
+    data.forEach((user, index) => {
+      singleRow(user, index);
+    });
+  };
+
+  const removeRows = () => {
+    const allRows = document.querySelectorAll("tr");
+    allRows.forEach((row) => {
+      row.remove();
+    });
+  };
+
+  const filterRows = (event) => {
+    removeRows();
     const keys = ["name"];
     filter = filterInput.value;
+    console.log(filter);
+
     data
       .filter((item) =>
         keys.some((key) => item[key].toLowerCase().includes(filter))
       )
       .map((person, index) => {
-        const rows = document.getElementsByTagName("tr");
+        return singleRow(person, index);
       });
+  };
+
+  /* wait for fetch to complete before building the table  */
+  async function buidltable() {
+    await fetchData(url);
+    addRows();
   }
 
-  /* create all even listeners */
+  /***************************  Event listeners **************************************************************************/
   multiplierDropDown.addEventListener("change", (e) => {
     multiplier = e.target.value;
     updatePower(multiplier);
@@ -97,12 +112,13 @@ export function runVanillaApp() {
       filter = "";
       multiplierDropDown.value = multiplier;
       filterInput.value = filter;
+      addRows();
       updatePower(multiplier);
     }
   });
 
   filterInput.addEventListener("input", (e) => {
-    filterName(e);
+    filterRows(e);
   });
 
   buidltable();
