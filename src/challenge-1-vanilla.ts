@@ -52,13 +52,14 @@ export function runVanillaApp() {
   function singleRow(user, index) {
     const row = document.createElement("tr");
     const name = document.createElement("td");
+    const height = document.createElement("td");
+    const mass = document.createElement("td");
+    const power = document.createElement("td");
+
     name.innerText = user.name;
     name.id = index.toString();
-    const height = document.createElement("td");
     height.innerText = user.height;
-    const mass = document.createElement("td");
     mass.innerText = user.mass;
-    const power = document.createElement("td");
     power.innerText = calcPower(user.mass, user.height, multiplier);
     power.id = `power${index}`;
     row.append(name, height, mass, power);

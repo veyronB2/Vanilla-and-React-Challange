@@ -12,25 +12,44 @@ const initialState = {
 const ACTIONS = {
   QUERY: "query",
   MULTIPLIER: "multiplier",
-  FETCH: "fetch",
+  FETCH: "fetchComplete",
+  RESET: "resetState"
 }
 
 const reducer = (state, action) => {
-  switch (action.type) {
-    case ACTIONS.QUERY:
-      return { ...state, query: action.payload }
-    case ACTIONS.MULTIPLIER:
-      return { ...state, multiplier: action.payload }
-    case ACTIONS.FETCH:
-      return { ...state, characters: action.payload }
-    default:
-      return state;
+
+  const map: { [key: string]: Function } = {
+    [ACTIONS.FETCH]: fetchCharacters,
+    [ACTIONS.MULTIPLIER]: updatePower,
+    [ACTIONS.QUERY]: nameFilter,
+    [ACTIONS.RESET]: resetState,
   }
+
+  return map[action.type] ? map[action.type]() : state
+
+  function nameFilter() {
+    return { ...state, query: action.payload }
+  }
+
+  function updatePower() {
+    return { ...state, multiplier: action.payload }
+  }
+
+  function fetchCharacters() {
+    return { ...state, characters: action.payload };
+  }
+
+  function resetState() {
+
+  }
+
 }
 
 function FunctionalComp() {
 
   const [state, dispatch] = useReducer(reducer, initialState);
+  const { characters, multiplier, query } = state;
+
 
   /*** fetch data ***/
   const fetchPeople = async (url: string, pages = []) => {
@@ -41,8 +60,10 @@ function FunctionalComp() {
 
       //get url of the next page 
       const nextPage = people.next;
-      if (nextPage === null) {
-        dispatch({ type: "fetch", payload: pages })
+
+
+      if (!nextPage) {
+        dispatch({ type: ACTIONS.FETCH, payload: pages })
         //setCharacters(pages);// if last page, update the state with final total result
         return;
       }
@@ -65,7 +86,7 @@ function FunctionalComp() {
       return "-";
     }
     //return final power
-    return (height * mass * state.multiplier).toFixed(0);
+    return (height * mass * state.multiplier).toFixed(0); //remove decimal could round it up or down as well 
   }
 
   //filter keys. More can be added if needed to filter on all columns 
@@ -76,8 +97,8 @@ function FunctionalComp() {
     const handleEsc = (event) => {
       //reset to defaults
       if (event.key === "Escape") {
-        dispatch({ type: ACTIONS.MULTIPLIER, payload: initialState.multiplier })
-        dispatch({ type: ACTIONS.QUERY, payload: initialState.query })
+        dispatch({ type: ACTIONS.MULTIPLIER, payload: multiplier })
+        dispatch({ type: ACTIONS.QUERY, payload: query })
       }
 
     };
@@ -95,14 +116,15 @@ function FunctionalComp() {
 
     <div id="functional-comp">
       <h2>React Functional Component</h2>
-      Filter: <input value={state.query} placeholder="Filter by name" onChange={(e) => dispatch({ type: ACTIONS.QUERY, payload: e.target.value })} /> Multiplier:{" "}
+
+      Filter: <input value={query} placeholder="Filter by name" onChange={(e) => dispatch({ type: ACTIONS.QUERY, payload: e.target.value })} /> Multiplier:{" "}
       <input
         id="functional-multiplier"
         placeholder="Multiplier"
         type="number"
         min="1"
         max="20"
-        value={state.multiplier}
+        value={multiplier}
         onChange={(e) => dispatch({ type: ACTIONS.MULTIPLIER, payload: e.target.value })}
       />{" "}
       Press "Escape" to reset fields
@@ -117,9 +139,9 @@ function FunctionalComp() {
 
           </tr>
         </thead>
-
-        {state.characters.filter(item => keys.some(key => item[key].toLowerCase().includes(state.query))).map((person, index) => {
+        {characters.filter(item => keys.some(key => item[key].toLowerCase().includes(query))).map((person, index) => {
           return (
+
             <tbody key={index}>
               <tr>
                 <td>{person.name}</td>
