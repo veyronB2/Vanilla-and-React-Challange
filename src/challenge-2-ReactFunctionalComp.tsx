@@ -1,25 +1,31 @@
-import { useEffect, useReducer } from "react";
-let url = "https://swapi.dev/api/people/";
+import { useEffect, useReducer, useState } from "react"
+import { initialState, ACTIONS } from "./constants";
+import { getFilteredCharacters, fetchAllData } from "./utils"
 
-//define initial states for the application 
-const initialState = {
-  characters: [],
-  multiplier: 10,
-  query: "",
+
+
+
+const useGetData = () => {
+  const [state, setState] = useState({ data: [], loading: true });
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const fetchData = async () => {
+    const characters = await fetchAllData();
+    setState({ data: characters, loading: false, });
+
+  }
+
+  return state;
 }
-
-//define all actions
-const ACTIONS = {
-  QUERY: "query",
-  MULTIPLIER: "multiplier",
-  FETCH: "fetchComplete",
-  RESET: "resetState"
-}
-
 const reducer = (state, action) => {
 
+  const { payload } = action;
+
   const map: { [key: string]: Function } = {
-    [ACTIONS.FETCH]: fetchCharacters,
+    [ACTIONS.FETCH]: initiateState,
     [ACTIONS.MULTIPLIER]: updatePower,
     [ACTIONS.QUERY]: nameFilter,
     [ACTIONS.RESET]: resetState,
@@ -28,55 +34,51 @@ const reducer = (state, action) => {
   return map[action.type] ? map[action.type]() : state
 
   function nameFilter() {
-    return { ...state, query: action.payload }
+    const { query } = payload;
+    return {
+
+      ...state, filteredCharacters: getFilteredCharacters({
+        characters: action.payload.characters || [],
+        query: query || "",
+      }),
+      query: query,
+
+    }
   }
 
   function updatePower() {
     return { ...state, multiplier: action.payload }
   }
 
-  function fetchCharacters() {
-    return { ...state, characters: action.payload };
+  function initiateState() {
+    return { ...state, filteredCharacters: getFilteredCharacters({ characters: payload.characters || [], filter: state.filter }) };
   }
 
   function resetState() {
+    const { query } = initialState;
+    return {
+      ...initialState,
+      filteredCharacters: getFilteredCharacters({
+        characters: payload.characters || [],
+        query,
+      })
+    }
 
   }
 
 }
-
 function FunctionalComp() {
-
+  const { data: characters, loading } = useGetData();
   const [state, dispatch] = useReducer(reducer, initialState);
-  const { characters, multiplier, query } = state;
+  const { filteredCharacters, multiplier, query } = state;
 
 
-  /*** fetch data ***/
-  const fetchPeople = async (url: string, pages = []) => {
-    try {
-      const response = await fetch(url);
-      const people = await response.json();
-      pages.push(...people.results); //update array with results
-
-      //get url of the next page 
-      const nextPage = people.next;
-
-
-      if (!nextPage) {
-        dispatch({ type: ACTIONS.FETCH, payload: pages })
-        //setCharacters(pages);// if last page, update the state with final total result
-        return;
-      }
-      return await fetchPeople(nextPage, pages)  //recursive data fetching by calling itself and passing variables
-    } catch (error) {
-      console.log(error);
-    }
-  }
-
-  /*** call fetch data on initial render***/
   useEffect(() => {
-    fetchPeople(url);
-  }, []);
+    if (characters && characters.length) {
+      dispatch({ type: ACTIONS.FETCH, payload: { characters } });
+    }
+  }, [characters, dispatch])
+
 
   /* calculate power based on values passed  */
   function calculatePower(height: number, mass: number) {
@@ -94,21 +96,27 @@ function FunctionalComp() {
 
   //handle escape key press
   useEffect(() => {
+
     const handleEsc = (event) => {
       //reset to defaults
       if (event.key === "Escape") {
-        dispatch({ type: ACTIONS.MULTIPLIER, payload: multiplier })
-        dispatch({ type: ACTIONS.QUERY, payload: query })
+        dispatch({ type: ACTIONS.RESET, payload: characters })
       }
 
     };
-    window.addEventListener('keydown', handleEsc);
+    const container = document.getElementById("functional-comp");
+    container.addEventListener('keydown', handleEsc);
 
     //remove event listener to avoid memory leaks etc 
     return () => {
-      window.removeEventListener('keydown', handleEsc);
+      container.removeEventListener('keydown', handleEsc);
     };
   }, []);
+
+  const handleNameFilter = (e) => {
+    dispatch({ type: ACTIONS.QUERY, payload: { characters, query: e.target.value } })
+  }
+
 
   return (
 
@@ -117,7 +125,7 @@ function FunctionalComp() {
     <div id="functional-comp">
       <h2>React Functional Component</h2>
 
-      Filter: <input value={query} placeholder="Filter by name" onChange={(e) => dispatch({ type: ACTIONS.QUERY, payload: e.target.value })} /> Multiplier:{" "}
+      Filter: <input value={query} placeholder="Filter by name" onChange={handleNameFilter} /> Multiplier:
       <input
         id="functional-multiplier"
         placeholder="Multiplier"

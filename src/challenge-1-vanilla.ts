@@ -5,12 +5,13 @@ export function runVanillaApp() {
   const tbody = document.getElementById("tbody");
   const multiplierDropDown = document.getElementById("multiplier");
   const filterInput = document.getElementById("filter");
+  const container = document.getElementById("vanilla");
 
   //define variables
   let url = "https://swapi.dev/api/people/";
   const data = [];
   let multiplier = multiplierDropDown.value; // initial value
-  let filter = ""; //default value
+  let filter = ""; //default
 
   /*************** data fetching section ***************************/
   const fetchData = async (url: string) => {
@@ -74,7 +75,7 @@ export function runVanillaApp() {
   };
 
   const removeRows = () => {
-    const allRows = document.querySelectorAll("tr");
+    const allRows = container.querySelectorAll("tr");
     allRows.forEach((row) => {
       row.remove();
     });
@@ -84,7 +85,6 @@ export function runVanillaApp() {
     removeRows();
     const keys = ["name"];
     filter = filterInput.value;
-    console.log(filter);
 
     data
       .filter((item) =>
@@ -107,12 +107,13 @@ export function runVanillaApp() {
     updatePower(multiplier);
   });
 
-  window.addEventListener("keydown", (e) => {
+  container.addEventListener("keydown", (e) => {
     if (e.code === "Escape") {
       multiplier = 10;
       filter = "";
       multiplierDropDown.value = multiplier;
       filterInput.value = filter;
+      removeRows();
       addRows();
       updatePower(multiplier);
     }
