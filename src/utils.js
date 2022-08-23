@@ -1,9 +1,9 @@
 const URL = "https://swapi.dev/api/people";
 
-export const getFilteredCharacters = ({ characters, filter }) => {
+export const getFilteredCharacters = ({ characters, query }) => {
   return characters.filter((character) => {
-    return filter
-      ? character.name.toLowerCase().includes(filter.toLowerCase())
+    return query
+      ? character.name.toLowerCase().includes(query.toLowerCase())
       : characters;
   });
 };
@@ -25,3 +25,24 @@ export const fetchAllData = async (url = URL, accumulatedResult = []) => {
     console.log(error);
   }
 };
+
+/*************** calculate power  ************************************/
+export function calculatePower(character, multiplier) {
+  if (isNaN(character.mass) || isNaN(character.height)) {
+    return "-";
+  }
+  const power =
+    parseFloat(character.mass) *
+    parseFloat(character.height) *
+    parseFloat(multiplier);
+
+  return power.toFixed(0);
+}
+
+//update power column
+function updatePower(multiplier) {
+  data.forEach((item, index) => {
+    const power = document.getElementById(`power${index}`);
+    power.innerText = calcPower(item.mass, item.height, multiplier);
+  });
+}

@@ -117,6 +117,10 @@ function FunctionalComp() {
     dispatch({ type: ACTIONS.QUERY, payload: { characters, query: e.target.value } })
   }
 
+  const handleMultiplierChange = (e) => {
+    dispatch({ type: ACTIONS.MULTIPLIER, payload: e.target.value })
+  }
+
 
   return (
 
@@ -133,7 +137,7 @@ function FunctionalComp() {
         min="1"
         max="20"
         value={multiplier}
-        onChange={(e) => dispatch({ type: ACTIONS.MULTIPLIER, payload: e.target.value })}
+        onChange={handleMultiplierChange}
       />{" "}
       Press "Escape" to reset fields
       <div className="loader">Loading...</div>

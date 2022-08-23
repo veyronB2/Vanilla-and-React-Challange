@@ -1,127 +1,147 @@
 // Note: The HTML for this challenge can be found in index.html
 // Note: this function is run inside of src/main.tsx
-export function runVanillaApp() {
-  //get DOM objects
-  const tbody = document.getElementById("tbody");
-  const multiplierDropDown = document.getElementById("multiplier");
-  const filterInput = document.getElementById("filter");
-  const container = document.getElementById("vanilla");
 
-  //define variables
-  let url = "https://swapi.dev/api/people/";
-  const data = [];
-  let multiplier = multiplierDropDown.value; // initial value
-  let filter = ""; //default
+import { initialState } from "./constants";
+import { getFilteredCharacters, fetchAllData, calculatePower } from "./utils";
 
-  /*************** data fetching section ***************************/
-  const fetchData = async (url: string) => {
-    try {
-      const response = await fetch(url);
-      const people = await response.json();
-      data.push(...people.results);
+let state = initialState;
 
-      const nextPage = people.next;
+const selectors = {
+  getTableBody() {
+    return document.getElementById("tbody");
+  },
+  getMultiplierInput() {
+    return document.getElementById("multiplier");
+  },
+  getFilterInput() {
+    return document.getElementById("filter");
+  },
+  getContainer() {
+    return document.getElementById("vanilla");
+  },
+};
 
-      if (nextPage === null) {
-        return data;
-      }
-      return await fetchData(nextPage);
-    } catch (error) {
-      console.log(error);
-    }
-  };
-
-  /*************** calculate power  ************************************/
-  const calcPower = (mass, height, multiplier) => {
-    if (isNaN(mass) || isNaN(height)) {
-      return "-";
-    }
-    const power =
-      parseFloat(mass) * parseFloat(height) * parseFloat(multiplier);
-
-    return power.toFixed(0);
-  };
-
-  //update power column
-  function updatePower(multiplier) {
-    data.forEach((item, index) => {
-      const power = document.getElementById(`power${index}`);
-      power.innerText = calcPower(item.mass, item.height, multiplier);
-    });
+function renderRows() {
+  const tbody = selectors.getTableBody(); //get table body
+  // remove any present rows before rendering
+  if (tbody.firstChild) {
+    removeRows();
   }
 
-  function singleRow(user, index) {
+  state.filteredCharacters.forEach((character) => {
     const row = document.createElement("tr");
     const name = document.createElement("td");
     const height = document.createElement("td");
     const mass = document.createElement("td");
     const power = document.createElement("td");
 
-    name.innerText = user.name;
-    name.id = index.toString();
-    height.innerText = user.height;
-    mass.innerText = user.mass;
-    power.innerText = calcPower(user.mass, user.height, multiplier);
-    power.id = `power${index}`;
+    name.innerText = character.name;
+    height.innerText = character.height;
+    mass.innerText = character.mass;
     row.append(name, height, mass, power);
     tbody.appendChild(row);
+  });
+  //update power column once rows have been updated
+  updatePowerColumn();
+}
+
+function initializeState(characters) {
+  state = {
+    ...state,
+    filteredCharacters: getFilteredCharacters({
+      characters,
+      query: state.query,
+    }),
+  };
+  renderRows();
+}
+
+function updatePowerColumn() {
+  const rows = selectors.getTableBody().children;
+
+  //go through each row and update the power column
+  state.filteredCharacters.forEach((character, index) => {
+    const powerCol = rows[index].children[3];
+    powerCol.textContent = calculatePower(character, state.multiplier);
+  });
+}
+
+function removeRows() {
+  const tbody = selectors.getTableBody();
+  //remove all children if first child not empty
+  while (tbody.firstChild) {
+    tbody.firstChild.remove();
+  }
+}
+
+function updateState({ characters, query, multiplier }) {
+  if (typeof query === "string") {
+    state = {
+      ...state,
+      query,
+      filteredCharacters: getFilteredCharacters({
+        characters,
+        query,
+      }),
+    };
   }
 
-  const addRows = () => {
-    /* build dynamic table based on data fetched */
-    data.forEach((user, index) => {
-      singleRow(user, index);
-    });
-  };
-
-  const removeRows = () => {
-    const allRows = container.querySelectorAll("tr");
-    allRows.forEach((row) => {
-      row.remove();
-    });
-  };
-
-  const filterRows = (event) => {
-    removeRows();
-    const keys = ["name"];
-    filter = filterInput.value;
-
-    data
-      .filter((item) =>
-        keys.some((key) => item[key].toLowerCase().includes(filter))
-      )
-      .map((person, index) => {
-        return singleRow(person, index);
-      });
-  };
-
-  /* wait for fetch to complete before building the table  */
-  async function buidltable() {
-    await fetchData(url);
-    addRows();
+  if (multiplier) {
+    state = {
+      ...state,
+      multiplier,
+    };
   }
+}
 
-  /***************************  Event listeners **************************************************************************/
-  multiplierDropDown.addEventListener("change", (e) => {
-    multiplier = e.target.value;
-    updatePower(multiplier);
+function updateTableRows() {
+  removeRows();
+  renderRows();
+}
+
+function resetState(characters) {
+  const { query } = initialState;
+  console.log(`Query:${query}`);
+
+  state = {
+    ...initialState,
+    filteredCharacters: getFilteredCharacters({
+      characters,
+      query,
+    }),
+  };
+  updateInputValues();
+  updateTableRows();
+}
+
+function updateInputValues() {
+  selectors.getFilterInput().value = state.query;
+  selectors.getMultiplierInput().value = state.multiplier;
+}
+
+export async function runVanillaApp() {
+  /*************** fetch data ***************************/
+  const characters = await fetchAllData();
+
+  //update state with fetched info
+  initializeState(characters);
+
+  // /***************************  Event listeners **************************************************************************/
+  selectors.getMultiplierInput().addEventListener("change", (e) => {
+    updateState({ characters, multiplier: Number(e.target.value) });
+    updateTableRows();
   });
 
-  container.addEventListener("keydown", (e) => {
+  selectors.getFilterInput().addEventListener("input", (e) => {
+    updateState({ characters, query: e.target.value });
+    updateTableRows();
+  });
+
+  selectors.getContainer().addEventListener("keydown", escapeKeyHandler);
+
+  function escapeKeyHandler(e) {
     if (e.code === "Escape") {
-      multiplier = 10;
-      filter = "";
-      multiplierDropDown.value = multiplier;
-      filterInput.value = filter;
-      removeRows();
-      addRows();
-      updatePower(multiplier);
+      resetState(characters);
     }
-  });
-
-  filterInput.addEventListener("input", (e) => {
-    filterRows(e);
-  });
-
-  buidltable();
+  }
 }
