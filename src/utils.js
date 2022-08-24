@@ -38,11 +38,3 @@ export function calculatePower(character, multiplier) {
 
   return power.toFixed(0);
 }
-
-//update power column
-function updatePower(multiplier) {
-  data.forEach((item, index) => {
-    const power = document.getElementById(`power${index}`);
-    power.innerText = calcPower(item.mass, item.height, multiplier);
-  });
-}

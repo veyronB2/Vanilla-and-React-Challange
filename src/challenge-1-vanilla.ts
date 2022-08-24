@@ -38,11 +38,11 @@ function renderRows() {
     name.innerText = character.name;
     height.innerText = character.height;
     mass.innerText = character.mass;
+    power.textContent = calculatePower(character, state.multiplier);
+
     row.append(name, height, mass, power);
     tbody.appendChild(row);
   });
-  //update power column once rows have been updated
-  updatePowerColumn();
 }
 
 function initializeState(characters) {
@@ -53,17 +53,6 @@ function initializeState(characters) {
       query: state.query,
     }),
   };
-  renderRows();
-}
-
-function updatePowerColumn() {
-  const rows = selectors.getTableBody().children;
-
-  //go through each row and update the power column
-  state.filteredCharacters.forEach((character, index) => {
-    const powerCol = rows[index].children[3];
-    powerCol.textContent = calculatePower(character, state.multiplier);
-  });
 }
 
 function removeRows() {
@@ -101,7 +90,6 @@ function updateTableRows() {
 
 function resetState(characters) {
   const { query } = initialState;
-  console.log(`Query:${query}`);
 
   state = {
     ...initialState,
@@ -125,6 +113,9 @@ export async function runVanillaApp() {
 
   //update state with fetched info
   initializeState(characters);
+
+  //render table rows
+  renderRows();
 
   // /***************************  Event listeners **************************************************************************/
   selectors.getMultiplierInput().addEventListener("change", (e) => {
