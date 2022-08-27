@@ -63,9 +63,6 @@ function stateControl() {
         query,
       }),
     };
-    Renderer().updateInputValues(state);
-    Renderer().removeRows();
-    Renderer().renderRows(state);
   }
 
   function getState() {
@@ -120,7 +117,6 @@ function Renderer() {
   return {
     renderRows,
     removeRows,
-    // updateTableRows,
     updateInputValues,
   };
 }
@@ -156,6 +152,9 @@ export async function runVanillaApp() {
   function escapeKeyHandler(e) {
     if (e.code === "Escape") {
       setState.resetState(characters);
+      renderer.updateInputValues(setState.getState());
+      renderer.removeRows();
+      renderer.renderRows(setState.getState());
     }
   }
   selectors.getContainer().addEventListener("keydown", escapeKeyHandler);
