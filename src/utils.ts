@@ -1,6 +1,13 @@
+import { CharacterType } from "./types";
 const URL = "https://swapi.dev/api/people";
 
-export const getFilteredCharacters = ({ characters, query }) => {
+export const getFilteredCharacters = ({
+  characters,
+  query,
+}: {
+  characters: CharacterType[];
+  query: string;
+}) => {
   return characters.filter((character) => {
     return query
       ? character.name.toLowerCase().includes(query.toLowerCase())
@@ -27,14 +34,14 @@ export const fetchAllData = async (url = URL, accumulatedResult = []) => {
 };
 
 /*************** calculate power  ************************************/
-export function calculatePower(character, multiplier) {
-  if (isNaN(character.mass) || isNaN(character.height)) {
+export function calculatePower(
+  character: CharacterType,
+  multiplier: number
+): string {
+  if (character.mass === "unknown" || character.height === "unknown") {
     return "-";
   }
-  const power =
-    parseFloat(character.mass) *
-    parseFloat(character.height) *
-    parseFloat(multiplier);
-
-  return power.toFixed(0);
+  return Math.round(
+    Number(character.mass) * Number(character.height) * multiplier
+  ).toString();
 }

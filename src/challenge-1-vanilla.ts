@@ -1,8 +1,9 @@
 // Note: The HTML for this challenge can be found in index.html
 // Note: this function is run inside of src/main.tsx
 
-import { initialState } from "./constants";
+import { initialState, ACTIONS } from "./constants";
 import { getFilteredCharacters, fetchAllData, calculatePower } from "./utils";
+import { UIState, CharacterType, PubSub } from "./types";
 
 //let state = initialState;
 
@@ -11,19 +12,58 @@ const selectors = {
     return document.getElementById("tbody");
   },
   getMultiplierInput() {
-    return document.getElementById("multiplier");
+    return <HTMLInputElement>document.getElementById("multiplier");
   },
   getFilterInput() {
-    return document.getElementById("filter");
+    return <HTMLInputElement>document.getElementById("filter");
   },
   getContainer() {
     return document.getElementById("vanilla");
   },
 };
 
-function stateControl() {
-  let state = initialState;
-  function initializeState(characters) {
+function PubSub() {
+  //array of functions submitted via the store
+  const subscribers: { [key: string]: Array<Function> } = {};
+
+  function subscribe(event: string, callbacks: Function[]) {
+    //check if event is already in the array
+    if (!subscribers[event]) {
+      subscribers[event] = [];
+    }
+    //if event not in the array add it
+    subscribers[event] = [...subscribers[event], ...callbacks];
+  }
+
+  //remove completed functions from the array
+  function unsubscribe(event: string, callback: Function) {
+    subscribers[event] = subscribers[event].filter((cback: Function) => {
+      return cback != callback;
+    });
+  }
+
+  function publish(event: string, state: UIState) {
+    if (!subscribers[event]) {
+      return;
+    }
+
+    subscribers[event].forEach((callback) => {
+      callback(state);
+    });
+  }
+
+  return {
+    subscribe,
+    unsubscribe,
+    publish,
+  };
+}
+
+function Store(pubSub: PubSub) {
+  //set initial state
+  let state: UIState = initialState;
+
+  function initializeState(characters: CharacterType[]) {
     state = {
       ...state,
       filteredCharacters: getFilteredCharacters({
@@ -31,9 +71,18 @@ function stateControl() {
         query: state.query,
       }),
     };
+    pubSub.publish(ACTIONS.STATE_INITIALIZED, state);
   }
 
-  function updateState({ characters, query, multiplier }) {
+  function updateState({
+    characters,
+    query,
+    multiplier,
+  }: {
+    characters: CharacterType[];
+    query?: string;
+    multiplier?: number;
+  }) {
     if (typeof query === "string") {
       state = {
         ...state,
@@ -43,6 +92,8 @@ function stateControl() {
           query,
         }),
       };
+
+      pubSub.publish(ACTIONS.NAME_CHANGED, state);
     }
 
     if (multiplier) {
@@ -50,10 +101,11 @@ function stateControl() {
         ...state,
         multiplier,
       };
+      pubSub.publish(ACTIONS.MULTIPLIER_CHANGED, state);
     }
   }
 
-  function resetState(characters) {
+  function resetState({ characters }: { characters: CharacterType[] }) {
     const { query } = initialState;
 
     state = {
@@ -63,21 +115,18 @@ function stateControl() {
         query,
       }),
     };
+    pubSub.publish(ACTIONS.STATE_INITIALIZED, state);
   }
 
-  function getState() {
-    return state;
-  }
   return {
     initializeState,
     updateState,
     resetState,
-    getState,
   };
 }
 
 function Renderer() {
-  function renderRows(state) {
+  function renderRows(state: UIState) {
     const tbody = selectors.getTableBody(); //get table body
     // remove any present rows before rendering
 
@@ -110,9 +159,9 @@ function Renderer() {
     }
   }
 
-  function updateInputValues(state) {
+  function updateInputValues(state: UIState) {
     selectors.getFilterInput().value = state.query;
-    selectors.getMultiplierInput().value = state.multiplier;
+    selectors.getMultiplierInput().value = state.multiplier.toString();
   }
   return {
     renderRows,
@@ -123,39 +172,60 @@ function Renderer() {
 
 export async function runVanillaApp() {
   /*************** fetch data ***************************/
-  const characters = await fetchAllData();
-  const setState = stateControl();
+  const pubSub = PubSub();
+  const store = Store(pubSub);
   const renderer = Renderer();
 
-  //update state with fetched info
-  setState.initializeState(characters);
+  /**** define all subscribers *****/
+  pubSub.subscribe(ACTIONS.STATE_INITIALIZED, [
+    renderer.renderRows,
+    renderer.updateInputValues,
+  ]);
 
-  //render table rows
-  renderer.renderRows(setState.getState());
+  pubSub.subscribe(ACTIONS.NAME_CHANGED, [
+    renderer.renderRows,
+    renderer.updateInputValues,
+  ]);
+
+  pubSub.subscribe(ACTIONS.MULTIPLIER_CHANGED, [
+    renderer.removeRows,
+    renderer.renderRows,
+  ]);
+
+  /** Clean up all references in memory */
+  selectors.getContainer()?.addEventListener("unload", function () {
+    pubSub.unsubscribe(ACTIONS.STATE_INITIALIZED, renderer.renderRows);
+    pubSub.unsubscribe(ACTIONS.STATE_INITIALIZED, renderer.updateInputValues);
+    pubSub.unsubscribe(ACTIONS.NAME_CHANGED, renderer.updateInputValues);
+    pubSub.unsubscribe(ACTIONS.MULTIPLIER_CHANGED, renderer.removeRows);
+    pubSub.unsubscribe(ACTIONS.MULTIPLIER_CHANGED, renderer.renderRows);
+  });
+
+  //get data
+  const characters = await fetchAllData();
+
+  store.initializeState(characters);
 
   // /***************************  Event listeners **************************************************************************/
   selectors.getMultiplierInput().addEventListener("change", (e) => {
-    setState.updateState({
+    store.updateState({
       characters,
-      multiplier: Number(e.target.value),
+      multiplier: Number((e.target as HTMLInputElement).value),
     });
-    renderer.removeRows();
-    renderer.renderRows(setState.getState());
   });
 
   selectors.getFilterInput().addEventListener("input", (e) => {
-    setState.updateState({ characters, query: e.target.value });
-    renderer.removeRows();
-    renderer.renderRows(setState.getState());
+    store.updateState({
+      characters,
+      query: (e.target as HTMLInputElement).value,
+    });
   });
 
-  function escapeKeyHandler(e) {
+  function escapeKeyHandler(e: { code: string }) {
     if (e.code === "Escape") {
-      setState.resetState(characters);
-      renderer.updateInputValues(setState.getState());
-      renderer.removeRows();
-      renderer.renderRows(setState.getState());
+      store.resetState({ characters });
     }
   }
+
   selectors.getContainer().addEventListener("keydown", escapeKeyHandler);
 }
