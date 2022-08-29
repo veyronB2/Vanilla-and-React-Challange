@@ -1,5 +1,6 @@
-import { useEffect, useReducer, useState } from "react"
-import { initialState, ACTIONS } from "./constants";
+import React, { useEffect, useReducer, useState } from "react"
+import { initialState, ACTIONSReact, ACTIONS } from "./constants";
+import { UIState, Action, Payload } from "./types";
 import { getFilteredCharacters, fetchAllData } from "./utils"
 
 
@@ -20,15 +21,15 @@ const useGetData = () => {
 
   return state;
 }
-const reducer = (state, action) => {
+const reducer = (state: UIState, action: Action): UIState => {
 
   const { payload } = action;
 
   const map: { [key: string]: Function } = {
-    [ACTIONS.FETCH]: initiateState,
-    [ACTIONS.MULTIPLIER]: updatePower,
-    [ACTIONS.QUERY]: nameFilter,
-    [ACTIONS.RESET]: resetState,
+    [ACTIONSReact.FETCH]: initiateState,
+    [ACTIONSReact.MULTIPLIER]: updatePower,
+    [ACTIONSReact.QUERY]: nameFilter,
+    [ACTIONSReact.RESET]: resetState,
   }
 
   return map[action.type] ? map[action.type]() : state
@@ -46,12 +47,12 @@ const reducer = (state, action) => {
     }
   }
 
-  function updatePower() {
-    return { ...state, multiplier: action.payload }
+  function updatePower(): UIState {
+    return { ...state, multiplier: payload.multiplier }
   }
 
-  function initiateState() {
-    return { ...state, filteredCharacters: getFilteredCharacters({ characters: payload.characters || [], filter: state.filter }) };
+  function initiateState(): UIState {
+    return { ...state, filteredCharacters: getFilteredCharacters({ characters: payload.characters || [], query: state.query }) };
   }
 
   function resetState() {
@@ -75,20 +76,20 @@ function FunctionalComp() {
 
   useEffect(() => {
     if (characters && characters.length) {
-      dispatch({ type: ACTIONS.FETCH, payload: { characters } });
+      dispatch({ type: ACTIONSReact.FETCH, payload: { characters } });
     }
   }, [characters, dispatch])
 
 
   /* calculate power based on values passed  */
-  function calculatePower(height: number, mass: number) {
+  function calculatePower(height: string, mass: string): string {
 
     //make sure NaN is not shown 
-    if (isNaN(mass) || isNaN(height)) {
+    if (mass == "unknown" || height === "unknown") {
       return "-";
     }
     //return final power
-    return (height * mass * state.multiplier).toFixed(0); //remove decimal could round it up or down as well 
+    return Math.round(Number(height) * Number(mass) * state.multiplier).toString();
   }
 
   //filter keys. More can be added if needed to filter on all columns 
@@ -97,10 +98,10 @@ function FunctionalComp() {
   //handle escape key press
   useEffect(() => {
 
-    const handleEsc = (event) => {
+    const handleEsc = (event: { key: string; }) => {
       //reset to defaults
       if (event.key === "Escape") {
-        dispatch({ type: ACTIONS.RESET, payload: characters })
+        dispatch({ type: ACTIONSReact.RESET, payload: { characters } })
       }
 
     };
@@ -113,12 +114,12 @@ function FunctionalComp() {
     };
   }, []);
 
-  const handleNameFilter = (e) => {
-    dispatch({ type: ACTIONS.QUERY, payload: { characters, query: e.target.value } })
+  const handleNameFilter = (e: React.ChangeEvent<HTMLInputElement>) => {
+    dispatch({ type: ACTIONSReact.QUERY, payload: { characters, query: e.target.value } })
   }
 
-  const handleMultiplierChange = (e) => {
-    dispatch({ type: ACTIONS.MULTIPLIER, payload: e.target.value })
+  const handleMultiplierChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    dispatch({ type: ACTIONSReact.MULTIPLIER, payload: { multiplier: Number(e.target.value) } })
   }
 
 
