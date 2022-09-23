@@ -1,9 +1,5 @@
 # Frontend Take-Home Challenge Instructions
 
-## Overview
-
-As a member of the Valstro UI Engineering team, you'll be building a multi-window desktop application with complex UI features. Therefore, the purpose of this assessment is to show that you have the fundamentals for building fast reactive UI applications, with modern day best practices.
-
 ## Setup
 
 - Clone the repo & cd into it.
@@ -16,7 +12,6 @@ To build the same simple UI using:
 
 - Vanilla TS (`./src/challenge-1-vanilla.ts`)
 - React Functional Components (`./src/challenge-2-ReactFunctionalComp.tsx`)
-- React Classes (`./src/challenge-3-ReactClassComp.tsx`)
 
 ### Requirements
 
